@@ -63,5 +63,32 @@ public class ItemHistory extends HttpServlet {
 
 
 	}
+	
+	protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		try {
+			JSONObject input = RpcHelper.readJsonObject(request);
+			String userId = input.getString("user_id");
+			JSONArray array = (JSONArray) input.get("favorite");
+			
+			List<String> histories = new ArrayList<>();
+			for (int i = 0; i< array.length(); i++) {
+				String itemId = (String) array.get(i);
+				histories.add(itemId);
+			}
+			conn.unsetFavoriteItems(userId, histories);
+			RpcHelper.writeJsonObject(response, new JSONObject().put("result", "SUCCESS"));
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
+	
+	
+	
+	
+	
+	
 
 }

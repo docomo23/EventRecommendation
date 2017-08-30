@@ -68,7 +68,17 @@ public class MySQLConnection implements DBConnection {
 
 	@Override
 	public void unsetFavoriteItems(String userId, List<String> itemIds) {
-		// TODO Auto-generated method stub
+		String query = "DELETE FROM history WHERE user_id = ? and item_id = ?";
+		try {
+			PreparedStatement statement = conn.prepareStatement(query);
+			for (String itemId : itemIds) {
+				statement.setString(1, userId);
+				statement.setString(2, itemId);
+				statement.execute();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 	}
 
