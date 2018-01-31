@@ -3,17 +3,20 @@ package db.mysql;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import db.DBConnection;
 import entity.Item;
+import entity.Item.ItemBuilder;
 import external.ExternalAPI;
 import external.ExternalAPIFactory;
 
 
-// This is a singleton pattern.
+// Singleton pattern.
 public class MySQLConnection implements DBConnection {
 	private static MySQLConnection instance;
 
@@ -84,21 +87,86 @@ public class MySQLConnection implements DBConnection {
 
 	@Override
 	public Set<String> getFavoriteItemIds(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		Set<String> favoriteItemsId = new HashSet<>();
+		try {
+			String sql = "SELECT item_id from history WHERE user_id = ?";
+			PreparedStatement statement = conn.prepareStatement(sql);
+			statement.setString(1, userId);
+			ResultSet rs = statement.executeQuery();
+			while(rs.next()) {
+				String itemId = rs.getString("item_id");
+				favoriteItemsId.add(itemId);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return favoriteItemsId;
 	}
 
 	@Override
 	public Set<Item> getFavoriteItems(String userId) {
-		// TODO Auto-generated method stub
-		return null;
+		Set<String> itemIds = getFavoriteItemIds(userId);
+		Set<Item> favoriteItems = new HashSet<>();
+		try {
+			for (String itemId : itemIds) {
+				String sql = "SELECT * from items WHERE item_id = ?";
+				PreparedStatement statement = conn.prepareStatement(sql);
+				statement.setString(1, itemId);
+				ResultSet rs = statement.executeQuery();
+				ItemBuilder builder = new ItemBuilder();
+				
+				if(rs.next()) {
+			          builder.setItemId(rs.getString("item_id"));
+			          builder.setName(rs.getString("name"));
+			          builder.setCity(rs.getString("city"));
+			          builder.setState(rs.getString("state"));
+			          builder.setCountry(rs.getString("country"));
+			          builder.setZipcode(rs.getString("zipcode"));
+			          builder.setRating(rs.getDouble("rating"));
+			          builder.setAddress(rs.getString("address"));
+			          builder.setLatitude(rs.getDouble("latitude"));
+			          builder.setLongitude(rs.getDouble("longitude"));
+			          builder.setDescription(rs.getString("description"));
+			          builder.setSnippet(rs.getString("snippet"));
+			          builder.setSnippetUrl(rs.getString("snippet_url"));
+			          builder.setImageUrl(rs.getString("image_url"));
+			          builder.setUrl(rs.getString("url"));
+				}
+		        // Also join categories information into builder.
+		        sql = "SELECT * from categories WHERE item_id = ?";
+		        statement = conn.prepareStatement(sql);
+		        statement.setString(1, itemId);
+		        rs = statement.executeQuery();
+		        Set<String> categories = new HashSet<>();
+		        while (rs.next()) {
+		          categories.add(rs.getString("category"));
+		        }
+		        builder.setCategories(categories);
+		        favoriteItems.add(builder.build());
+		      }
+		    } catch (SQLException e) {
+		      e.printStackTrace();
+		    }
+		    return favoriteItems;
 	}
 
-	@Override
-	public Set<String> getCategories(String itemId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	  @Override
+	  public Set<String> getCategories(String itemId) {
+	    Set<String> categories = new HashSet<>();
+	    try {
+	      String sql = "SELECT category from categories WHERE item_id = ? ";
+	      PreparedStatement statement = conn.prepareStatement(sql);
+	      statement.setString(1, itemId);
+	      ResultSet rs = statement.executeQuery();
+	      while (rs.next()) {
+	        categories.add(rs.getString("category"));
+	      }
+	    } catch (Exception e) {
+	      System.out.println(e.getMessage());
+	    }
+	    return categories;
+	  }
+
 
 	@Override
 	public List<Item> searchItems(String userId, double lat, double lon, String term) {
